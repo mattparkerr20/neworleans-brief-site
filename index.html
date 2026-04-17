@@ -197,15 +197,18 @@
 
 <script>
 (function() {
-  var ML_URL = 'https://assets.mailerlite.com/jsonp/2270549/forms/184830219582965058/subscribe';
+  var SUBSCRIBE_URL = 'https://subscribe.matt-d08.workers.dev/';
+  var AUDIENCE     = 'neworleans';
 
-  function submitToML(email, onSuccess) {
-    var data = new URLSearchParams();
-    data.append('fields[email]', email);
-    data.append('ml-submit', '1');
-    data.append('anticsrf', 'true');
-    fetch(ML_URL, {method:'POST', body:data})
-      .then(onSuccess).catch(onSuccess);
+  function subscribe(email, onSuccess, onError) {
+    fetch(SUBSCRIBE_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email: email, audience: AUDIENCE})
+    })
+      .then(function(r) { return r.json().then(function(data) { return {ok: r.ok, data: data}; }); })
+      .then(function(res) { res.ok ? onSuccess() : onError(res.data.error || 'Could not subscribe'); })
+      .catch(function() { onError('Could not subscribe'); });
   }
 
   function wireForm(formId, successId, noteId) {
@@ -214,14 +217,21 @@
     form.addEventListener('submit', function(e) {
       e.preventDefault();
       var email = form.querySelector('input[type=email]').value;
-      var btn = form.querySelector('button');
+      var btn   = form.querySelector('button');
       btn.textContent = 'Subscribing\u2026';
       btn.disabled = true;
-      submitToML(email, function() {
-        form.style.display = 'none';
-        if (noteId) document.getElementById(noteId).style.display = 'none';
-        document.getElementById(successId).style.display = 'block';
-      });
+      subscribe(email,
+        function() {
+          form.style.display = 'none';
+          if (noteId) document.getElementById(noteId).style.display = 'none';
+          document.getElementById(successId).style.display = 'block';
+        },
+        function(msg) {
+          btn.textContent = 'Subscribe Free \u2192';
+          btn.disabled = false;
+          alert(msg);
+        }
+      );
     });
   }
 

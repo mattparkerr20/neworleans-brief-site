@@ -87,7 +87,8 @@
 
 <script>
 (function() {
-  var ML_URL = 'https://assets.mailerlite.com/jsonp/2270549/forms/184830219582965058/subscribe';
+  var SUBSCRIBE_URL = 'https://subscribe.matt-d08.workers.dev/';
+  var AUDIENCE     = 'neworleans';
 
   var params = new URLSearchParams(window.location.search);
   var preEmail = params.get('email');
@@ -96,17 +97,30 @@
   document.getElementById('sub-form').addEventListener('submit', function(e) {
     e.preventDefault();
     var email = document.getElementById('sub-email').value;
-    var btn = document.getElementById('sub-btn');
+    var btn   = document.getElementById('sub-btn');
     btn.textContent = 'Subscribing\u2026';
     btn.disabled = true;
 
-    var data = new URLSearchParams();
-    data.append('fields[email]', email);
-    data.append('ml-submit', '1');
-    data.append('anticsrf', 'true');
-
-    fetch(ML_URL, {method:'POST', body:data})
-      .then(showSuccess).catch(showSuccess);
+    fetch(SUBSCRIBE_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email: email, audience: AUDIENCE})
+    })
+      .then(function(r) { return r.json().then(function(data) { return {ok: r.ok, data: data}; }); })
+      .then(function(res) {
+        if (res.ok) {
+          showSuccess();
+        } else {
+          btn.textContent = 'Subscribe \u2192';
+          btn.disabled = false;
+          alert(res.data.error || 'Could not subscribe — please try again.');
+        }
+      })
+      .catch(function() {
+        btn.textContent = 'Subscribe \u2192';
+        btn.disabled = false;
+        alert('Could not subscribe — please try again.');
+      });
   });
 
   function showSuccess() {
